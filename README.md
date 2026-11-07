@@ -1,5 +1,12 @@
 # FPL HQ Live Feed · 2026/27
 
+## Collect FPL data from ChatGPT
+
+When Xavier asks “Collect FPL data”, create a new issue in `SYN-tech-ops/FPL-hq-live` titled `[FPL-REFRESH]`. Read the public [status](https://raw.githubusercontent.com/SYN-tech-ops/FPL-hq-live/main/data/status.json) and [latest](https://raw.githubusercontent.com/SYN-tech-ops/FPL-hq-live/main/data/latest.json) timestamps before opening the issue. Wait for the workflow comment. On success, re-fetch both files and verify their timestamps match the issue receipt, advance beyond the baseline, and all three accounts are validated. If GitHub's raw cache lags, retry. Report failures and stale data explicitly.
+
+The issue author and event actor must both be GitHub user ID `330933663` (SYN-tech-ops). The body may be empty. Ordinary issues are ignored. Successful requests close automatically. A failed collection leaves a comment and the request open. To retry, open a new request. Wait for the previous request to finish before requesting another.
+
+
 Public Fantasy Premier League data for Haramball (603617), Voodoo (1989422) and Ankit (601071). Xavier controls the repository and the schedule. Python 3.11+ and its standard library are the only runtime dependencies. All times are UTC.
 
 ## Start from an iPhone
