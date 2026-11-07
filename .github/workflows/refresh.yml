@@ -1,5 +1,7 @@
 name: Refresh FPL feed
 on:
+  issues:
+    types: [opened]
   workflow_dispatch:
   schedule:
     - cron: '17 * * * *'
@@ -10,15 +12,23 @@ on:
       - 'test_collector.py'
       - '.github/workflows/refresh.yml'
 
-permissions:
-  contents: write
-concurrency:
-  group: fpl-feed-publisher
-  cancel-in-progress: false
+permissions: {}
 
 jobs:
   refresh:
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name != 'issues' ||
+       (github.event.issue.title == '[FPL-REFRESH]' &&
+        github.event.issue.user.id == 330933663 &&
+        github.actor_id == '330933663'))
+    permissions:
+      contents: write
+    concurrency:
+      group: fpl-feed-publisher
+      cancel-in-progress: false
+    outputs:
+      collected: ${{ steps.publish.outputs.collected }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -28,6 +38,7 @@ jobs:
       - name: Run offline regression tests
         run: python3 -m unittest -q
       - name: Collect and publish validated output
+        id: publish
         env:
           TRIGGER: ${{ github.event_name }}
         shell: bash
@@ -51,4 +62,34 @@ jobs:
             git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "Refresh public FPL feed"
             git push origin HEAD:refs/heads/main
           fi
+          if [[ "$rc" == 0 && "$TRIGGER" == issues ]]; then
+            jq -er '"collected=" + .collected_at_utc' data/status.json >> "$GITHUB_OUTPUT"
+          fi
           exit "$rc"
+
+  report:
+    needs: refresh
+    if: >-
+      always() && github.event_name == 'issues' &&
+      github.event.issue.title == '[FPL-REFRESH]' &&
+      github.event.issue.user.id == 330933663 && github.actor_id == '330933663' &&
+      needs.refresh.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      issues: write
+    steps:
+      - name: Report collection outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          RESULT: ${{ needs.refresh.result }}
+          COLLECTED: ${{ needs.refresh.outputs.collected }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [[ "$RESULT" == success ]]; then
+            gh issue close "$NUMBER" --comment "Published validated FPL data at $COLLECTED. $RUN_URL"
+          else
+            gh issue comment "$NUMBER" --body "Collection result: $RESULT. Check this run before using the feed. $RUN_URL"
+          fi
