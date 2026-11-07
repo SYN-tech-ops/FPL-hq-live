@@ -1,0 +1,54 @@
+name: Refresh FPL feed
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'collector.py'
+      - 'test_collector.py'
+      - '.github/workflows/refresh.yml'
+
+permissions:
+  contents: write
+concurrency:
+  group: fpl-feed-publisher
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+      - name: Run offline regression tests
+        run: python3 -m unittest -q
+      - name: Collect and publish validated output
+        env:
+          TRIGGER: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d)"
+          flags=()
+          if [[ "$TRIGGER" == schedule ]]; then flags+=(--scheduled); fi
+          rc=0
+          python3 collector.py --previous data --out "$stage" "${flags[@]}" || rc=$?
+          case "$rc" in
+            0) if [[ "$TRIGGER" == schedule && ! -e "$stage/status.json" ]]; then exit 0; fi
+               test -s "$stage/status.json" && test -s "$stage/latest.json" || exit 1 ;;
+            2) test -s "$stage/status.json" ;;
+            *) exit "$rc" ;;
+          esac
+          mkdir -p data
+          cp -R "$stage/." data/
+          git add -- data/
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "Refresh public FPL feed"
+            git push origin HEAD:refs/heads/main
+          fi
+          exit "$rc"
