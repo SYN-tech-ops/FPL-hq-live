@@ -8,7 +8,7 @@
 {"id":7,"deadline_time":"2026-10-17T10:00:00Z","is_current":false,"is_next":false,"finished":true,"data_checked":true} ,
 {"id":8,"deadline_time":"2026-10-23T17:30:00Z","is_current":false,"is_next":false,"finished":true,"data_checked":true} ,
 {"id":9,"deadline_time":"2026-10-31T11:00:00Z","is_current":false,"is_next":false,"finished":true,"data_checked":true} ,
-{"id":10,"deadline_time":"2026-11-06T18:30:00Z","is_current":true,"is_next":false,"finished":false,"data_checked":false} ,
+{"id":10,"deadline_time":"2026-11-06T18:30:00Z","is_current":true,"is_next":false,"finished":true,"data_checked":true} ,
 {"id":11,"deadline_time":"2026-11-21T11:00:00Z","is_current":false,"is_next":true,"finished":false,"data_checked":false} ,
 {"id":12,"deadline_time":"2026-11-27T18:30:00Z","is_current":false,"is_next":false,"finished":false,"data_checked":false} ,
 {"id":13,"deadline_time":"2026-12-01T18:30:00Z","is_current":false,"is_next":false,"finished":false,"data_checked":false} ,
